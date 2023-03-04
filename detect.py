@@ -50,8 +50,8 @@ from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
 
 # Dakshina
-REF = 500
-BOTTOM_REF = 200
+REF = 0.55
+BOTTOM_REF = 0.8
 annotations = []
 n = 1
 global_min = 1080
@@ -124,6 +124,7 @@ def run(
     global n
     global count
     global global_min
+    global annotations
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -219,13 +220,13 @@ def run(
                         frame_min = h
                         for obj in annotations:
                             y = int(obj[1]*h)
-                            if (y < frame_min and y > REF and y < h - BOTTOM_REF):
+                            if (y < frame_min and y > REF*h and y < BOTTOM_REF*h):
                                 frame_min = y
-                            if (y < global_min and y > REF and y < h - BOTTOM_REF):
+                            if (y < global_min and y > REF*h and y < BOTTOM_REF*h):
                                 count += 1
                         global_min = frame_min
-                    cv2.line(im0, (0, REF), (w, REF), (0, 255, 0), 3)
-                    cv2.line(im0, (0, h - BOTTOM_REF), (w, h - BOTTOM_REF), (255, 0, 0), 3)
+                    cv2.line(im0, (0, int(REF*h)), (w, int(REF*h)), (0, 255, 0), 3)
+                    cv2.line(im0, (0, int(BOTTOM_REF*h)), (w, int(BOTTOM_REF*h)), (255, 0, 0), 3)
                     cv2.putText(im0,'Detected Vehicles: ' + str(count),(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0, 0xFF, 0),2,cv2.FONT_HERSHEY_COMPLEX_SMALL)
                     
                     vid_writer[i].write(im0)
