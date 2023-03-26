@@ -87,6 +87,7 @@ def run(
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
 ):
+    save_txt = True
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -172,15 +173,24 @@ def run(
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
-                annotations = []
+                # annotations = []
+                h = im0.shape[0]
+                frame_min = h
+
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
-                            annotations.append(line[1:])
-
+                            
+                            y = int(xywh[1]*h)
+                            # print(xywh)
+                            if (y < frame_min and y > REF*h and y < BOTTOM_REF*h):
+                                frame_min = y
+                            if (y < global_min and y > REF*h and y < BOTTOM_REF*h):
+                                count += 1
+                
                     if save_img or save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
@@ -188,6 +198,8 @@ def run(
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
+                global_min = frame_min
+                # print(count)
             # Stream results
             im0 = annotator.result()
             if view_img:
@@ -214,22 +226,22 @@ def run(
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                         save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                        # vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
 
-                    if len(annotations):
-                        frame_min = h
-                        for obj in annotations:
-                            y = int(obj[1]*h)
-                            if (y < frame_min and y > REF*h and y < BOTTOM_REF*h):
-                                frame_min = y
-                            if (y < global_min and y > REF*h and y < BOTTOM_REF*h):
-                                count += 1
-                        global_min = frame_min
-                    cv2.line(im0, (0, int(REF*h)), (w, int(REF*h)), (0, 255, 0), 3)
-                    cv2.line(im0, (0, int(BOTTOM_REF*h)), (w, int(BOTTOM_REF*h)), (255, 0, 0), 3)
-                    cv2.putText(im0,'Detected Vehicles: ' + str(count),(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0, 0xFF, 0),2,cv2.FONT_HERSHEY_COMPLEX_SMALL)
-                    
-                    vid_writer[i].write(im0)
+                    # if len(annotations):
+                    #     frame_min = h
+                    #     for obj in annotations:
+                    #         y = int(obj[1]*h)
+                    #         if (y < frame_min and y > REF*h and y < BOTTOM_REF*h):
+                    #             frame_min = y
+                    #         if (y < global_min and y > REF*h and y < BOTTOM_REF*h):
+                    #             count += 1
+                    #     global_min = frame_min
+                    #cv2.line(im0, (0, int(REF*h)), (w, int(REF*h)), (0, 255, 0), 3)
+                    #cv2.line(im0, (0, int(BOTTOM_REF*h)), (w, int(BOTTOM_REF*h)), (255, 0, 0), 3)
+                    #cv2.putText(im0,'Detected Vehicles: ' + str(count),(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.8,(0, 0xFF, 0),2,cv2.FONT_HERSHEY_COMPLEX_SMALL)
+
+                    #vid_writer[i].write(im0)
 
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
@@ -238,6 +250,7 @@ def run(
     # Print results
     t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
     LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
+    print("Number of vehicles = {}".format(count))
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
