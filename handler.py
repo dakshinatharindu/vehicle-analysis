@@ -8,10 +8,9 @@ from utils.general import (check_img_size, Profile, non_max_suppression, scale_b
 REF = 0.55
 BOTTOM_REF = 0.8
 
-global_min = 1080
-count = 0
-
 def handler(event, context):
+    global_min = 1080
+    count = 0
     source = event['source']
     imgsz=(640, 640)
 
@@ -23,9 +22,6 @@ def handler(event, context):
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=1)
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
-
-    global count
-    global global_min
 
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
