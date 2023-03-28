@@ -7,6 +7,7 @@ COPY weights/ ${LAMBDA_TASK_ROOT}/weights
 COPY highway.mp4 ${LAMBDA_TASK_ROOT}
 COPY export.py ${LAMBDA_TASK_ROOT}
 COPY detect.py ${LAMBDA_TASK_ROOT}
+COPY vehicle_count.py ${LAMBDA_TASK_ROOT}
 
 RUN pip3 install opencv-python-headless==4.5.3.56 --target "${LAMBDA_TASK_ROOT}"
 

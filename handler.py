@@ -26,6 +26,3 @@ def handler(event, context):
         'Vehicle Count': number_of_vehicles,
         'body': json.dumps("File updated successfully.")
     }
-
-
-print(handler({'source':'highway.mp4'}, None))
